@@ -1,0 +1,1 @@
+Monolithic application azure infrastructure.
