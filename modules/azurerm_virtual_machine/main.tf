@@ -1,33 +1,45 @@
-variable "landingzone_vms" {}
-
-resource "azurerm_virtual_machine" "main" {
-  for_each = var.landingzone_vms
-
-  name                  = each.key
-  location              = each.value.location
-  resource_group_name   = each.value.resource_group_name
-  network_interface_ids = each.value.network_interface_ids
-  vm_size               = each.value.vm_size
+variable "virtual_machines" {}
 
 
-  storage_image_reference {
-    publisher = each.value.publisher
-    offer     = each.value.offer
-    sku       = each.value.sku
-    version   = each.value.version
+
+resource "azurerm_network_interface" "nic" {
+  for_each = var.virtual_machines
+  name                = each.value.nic_name
+  location            = each.value.location
+  resource_group_name = each.value.resource_group_name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = data.azurerm_subnet.subnet[each.key].id
+    private_ip_address_allocation = "Dynamic"
+    
   }
-  storage_os_disk {
-    name              = each.value.name
-    caching           = each.value.caching
-    create_option     = each.value.create_option
-    managed_disk_type = each.value.managed_disk_type
+}
+
+
+resource "azurerm_linux_virtual_machine" "virtual_machine" {
+  for_each                        = var.virtual_machines
+  name                            = each.value.vm_name
+  resource_group_name             = each.value.resource_group_name
+  location                        = each.value.location
+  size                            = each.value.vm_size
+  admin_username                  = each.value.admin_username
+  admin_password                  = each.value.admin_password
+  disable_password_authentication = false
+
+  network_interface_ids = [
+    azurerm_network_interface.nic[each.key].id,
+  ]
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
   }
-  os_profile {
-    computer_name  = each.value.computer_name
-    admin_username = each.value.admin_username
-    admin_password = each.value.admin_password
-  }
-  os_profile_linux_config {
-    disable_password_authentication = each.value.disable_password_authentication
+
+  source_image_reference {
+    publisher = each.value.image_publisher
+    offer     = each.value.image_offer
+    sku       = each.value.image_sku
+    version   = each.value.image_version
   }
 }
