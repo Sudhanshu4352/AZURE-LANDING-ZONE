@@ -1,5 +1,3 @@
-variable "resource_groups"{}
-
 
 
 resource "azurerm_resource_group" "landing_zone_rg"{
